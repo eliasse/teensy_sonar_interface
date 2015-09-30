@@ -64,8 +64,21 @@ int Sonar::decode_buffer(char *in_buffer)
       char *tok;
       tok = strtok(buf,",*");
       
-      if (!strcmp("SDDPT", tok)) { decode_DPT(n_fields, is_empty); n_found++; }
-      else if (!strcmp("SDMTW", tok)) { decode_MTW(n_fields, is_empty); n_found++; }
+      if (!strcmp("SDDPT", tok))
+	{
+	  // Copy the sentence into a pretty string with sonar name
+	  strcpy(last_dpt,buf);
+	  decode_DPT(n_fields, is_empty);
+	  n_found++;
+	  depth_updated = true;
+	}
+      else if (!strcmp("SDMTW", tok))
+	{
+	  strcpy(last_mtw,buf);
+	  decode_MTW(n_fields, is_empty);
+	  n_found++;
+	  temperature_updated = true;
+	}
       
       // Returns to the beginning of the while loop to check remaining buffer
     }

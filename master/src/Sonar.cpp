@@ -1,5 +1,5 @@
 #include "Sonar.h"
-#include <Arduino.h>
+//#include <Arduino.h>
 
 Sonar::Sonar(int id, char *name) 
 {
@@ -9,30 +9,39 @@ Sonar::Sonar(int id, char *name)
 
 int Sonar::decode_buffer(char *in_buffer)
 {
-  char buf[100];  // 10 Rows (one for each found sentence)
-  int r = 0, k = 0, l = 0, cs, CRCin, n_found = 0;
+  char buf[100];
+  int  k = 0, l = 0, cs, n_found = 0;
 
-  while (in_buffer != '\0'){
+  while (in_buffer[k] != '\0'){
 
-    // Find sentence
-    while (in_buffer[k++] != '$') { if (in_buffer[k] == '\0') return n_found; };
+    // Find starting character
+    while (in_buffer[k++] != '$') {
+      if (in_buffer[k] == '\0')
+	return n_found;
+    };
+
+    // Add chars until end character is found
     do {
       buf[l++] = in_buffer[k];
-    } while (in_buffer[++k] != '*');
-    buf[l] = '\0';
+    } while ((in_buffer[++k] != '*') && (buf[l-1] != '\0'));
+
+     buf[l] = '\0';
 
     // Verify sentence
     char crc[3];
     crc[0] = in_buffer[++k];
     crc[1] = in_buffer[++k];
     crc[2] = '\0';
+    
     cs = checksum(buf);
-    CRCin = (int)strtol(crc,NULL,16);
-
+    
+    char cs_string[3];
+    sprintf(cs_string,"%02X",cs);
+    
     l = 0;
     
     // Decode sentence if checksums matches
-    if (CRCin == cs) {
+    if (!strcmp(crc,cs_string)) {
       // Count comma's 
       // Count double-occurrances and determine empty spots
       uint8_t i = 0;
@@ -55,8 +64,21 @@ int Sonar::decode_buffer(char *in_buffer)
       char *tok;
       tok = strtok(buf,",*");
       
-      if (!strcmp("SDDPT", tok)) { decode_DPT(n_fields, is_empty); n_found++; }
-      else if (!strcmp("SDMTW", tok)) { decode_MTW(n_fields, is_empty); n_found++; }
+      if (!strcmp("SDDPT", tok))
+	{
+	  // Copy the sentence into a pretty string with sonar name
+	  strcpy(last_dpt,buf);
+	  decode_DPT(n_fields, is_empty);
+	  n_found++;
+	  depth_updated = true;
+	}
+      else if (!strcmp("SDMTW", tok))
+	{
+	  strcpy(last_mtw,buf);
+	  decode_MTW(n_fields, is_empty);
+	  n_found++;
+	  temperature_updated = true;
+	}
       
       // Returns to the beginning of the while loop to check remaining buffer
     }

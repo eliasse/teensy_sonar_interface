@@ -7,11 +7,16 @@ class Sonar {
   public:
   int ID;
   char NAME[10];
+  bool depth_updated       = true; // Variable to verify data is updated
+  bool temperature_updated = true;
   
   float dbt;                    // Depth relative to transducer (SDDPT) [m]
   float offset;                 // Offset from transducer      (SDDPT)
   float max_range_scale;        // Maximum depth in current mode of operation
   float sea_water_temperature;  // Sea water temperature (SDMTW) [Celcius]
+
+  char *last_dpt = "SDDPT,-1.0,-1.000,-1.0*79"; // Last received depth sentence
+  char *last_mtw = "SDDPT,-1.0,-1.000,-1.0*79"; // Last received temperature sentence
   
   char *disable_all_sentences    = "$PAMTC,EN,ALL,0*1D\r\n";
   char *enable_sentence_dpt      = "$PAMTC,EN,DPT,1*1D\r\n"; // Yes the checksums are the same!
