@@ -1,0 +1,10 @@
+The arduino and teensys are by default operating at 100kHz I2C speeds.
+This can be changed but has to be done in the Wire library.
+
+Also the maximum I2C buffer length needs to be changed to be able
+to send a complete NMEA sentence. Change in "Wire.h" (seperate files
+for Arduino DUE and Teensy:
+
+#define BUFFER_LENGTH 32 -> something new
+
+

@@ -1,22 +1,31 @@
 #include <Wire.h>
 
 #define TWI_ADDR 10
+bool new_data = false;
 
 void setup()
 {
   Serial.begin(115200);
-  Wire.begin();
+  Wire.begin(TWI_ADDR);
+  Wire.onReceive(i2c_receiveEvent);
 }
 
 void loop()
 {
-  Serial.println("Sending request");
-  Wire.requestFrom(11,30);
-  
-  while (Wire.available()) { // slave may send less than requested
-    char c = Wire.read(); // receive a byte as character
-    Serial.print(c);         // print the character
-  }
-
   delay(1000);
+}
+
+void i2c_receiveEvent(int n_bytes)
+{
+  char buf[100];
+  char *i = buf;
+  
+  while ( Wire.available() )
+    {
+      *(i++) = Wire.read();
+    }
+  *i = '\0';
+  new_data = true;
+
+  Serial.println(buf);
 }

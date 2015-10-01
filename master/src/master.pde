@@ -2,23 +2,25 @@
 #include "Sonar.h"
 #include <HardwareSerial.h>
 
+#define ARDUINO_DUE_ADDR 10
 #define TWI_ADDR 11
 #define SLAVE_ADDR 12
 #define ledPin 13
 
 char *TeensyName = "MASTER";
 
-Sonar Sonar1(1,"SONAR1");
+Sonar Sonar1(1,"S1");
 char buffer1[70];
 char pretty_dpt1[50];
 int i1;
 
-Sonar Sonar2(2,"SONAR2");
+Sonar Sonar2(2,"S2");
 char buffer2[70];
 char pretty_dpt2[50];
 int i2;
 
 char pretty_dpt3[50], pretty_dpt4[50]; // Received from slave
+bool dpt3_updated, dpt4_updated;
 char wireBuffer[100]; int buffer_ptr = 0;
 
 HardwareSerial *XBee;
@@ -55,7 +57,6 @@ void loop() {
       SendRequest();
       request_timer = millis();
     }
-
   
   // Send data on XBee regardless of its updated or not
   if (millis() - xbee_timer > 1000) {
@@ -90,7 +91,21 @@ void loop() {
     Wire.beginTransmission(10);
     Wire.write(pretty_dpt2);
     Wire.endTransmission();
-  }  
+  }
+  if (dpt3_updated)
+    {
+      Wire.beginTransmission(10);
+      Wire.write(pretty_dpt3);
+      Wire.endTransmission();
+      dpt3_updated=false;
+    }
+  if (dpt4_updated)
+    {
+      Wire.beginTransmission(10);
+      Wire.write(pretty_dpt4);
+      Wire.endTransmission();
+      dpt4_updated=false;
+    }
   
   ReadPort(&Sonar1, &Serial2, buffer1, &i1);
   ReadPort(&Sonar2, &Serial3, buffer2, &i2);
@@ -115,7 +130,18 @@ void SendRequest()
   XBee->print(wireBuffer);
   // Is it Sonar3 or Sonar4 data?
   char *tok;
-  tok = strtok(wireBuffer,"$ ,*");
+  tok = strtok(wireBuffer,"$ ");
+
+  if (!strcmp(tok,"S3"))
+    {
+      strcpy(pretty_dpt3,wireBuffer);
+      dpt3_updated = true;
+    }
+  else if (!strcmp(tok,"S4"))
+    {
+      strcpy(pretty_dpt4,wireBuffer);
+      dpt4_updated = true;
+    }
   
 }
 
