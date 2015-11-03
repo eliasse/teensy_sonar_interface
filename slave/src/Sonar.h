@@ -15,8 +15,8 @@ class Sonar {
   float max_range_scale;        // Maximum depth in current mode of operation
   float sea_water_temperature;  // Sea water temperature (SDMTW) [Celcius]
 
-  char *last_dpt = "SDDPT,-1.0,-1.000,-1.0*79\r\n"; // Last received depth sentence
-  char *last_mtw = "SDDPT,-1.0,-1.000,-1.0*79\r\n"; // Last received temperature sentence
+  char last_dpt[50] = {'N','D','R','\0'}; // Last received depth sentence (No Data Received)
+  char last_mtw[50] = {'N','D','R','\0'}; // Last received temperature sentence (No Data Received)
   
   char *disable_all_sentences    = "$PAMTC,EN,ALL,0*1D\r\n";
   char *enable_sentence_dpt      = "$PAMTC,EN,DPT,1*1D\r\n"; // Yes the checksums are the same!

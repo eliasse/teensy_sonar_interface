@@ -7,7 +7,7 @@ Sonar::Sonar(int id, char *name)
   strcpy(NAME,name);
 }
 
-int Sonar::decode_buffer(char *in_buffer)
+int Sonar::decode_buffer(char in_buffer[])
 {
   char buf[100];
   int  k = 0, l = 0, cs, n_found = 0;
@@ -15,7 +15,7 @@ int Sonar::decode_buffer(char *in_buffer)
   while (in_buffer[k] != '\0'){
 
     // Find starting character
-    while (in_buffer[k++] != '$') {
+    while (in_buffer[k++] != '$'){
       if (in_buffer[k] == '\0')
 	return n_found;
     };
@@ -34,11 +34,13 @@ int Sonar::decode_buffer(char *in_buffer)
     crc[2] = '\0';
     
     cs = checksum(buf);
+
     
     char cs_string[3];
     sprintf(cs_string,"%02X",cs);
     
     l = 0;
+
     
     // Decode sentence if checksums matches
     if (!strcmp(crc,cs_string)) {
@@ -60,21 +62,22 @@ int Sonar::decode_buffer(char *in_buffer)
 	i++;
       }
       n_fields++;
-      
+
       char *tok;
-      tok = strtok(buf,",*");
       
-      if (!strcmp("SDDPT", tok))
+      if (strstr(buf,"SDDPT"))
 	{
 	  // Copy the sentence into a pretty string with sonar name
 	  strcpy(last_dpt,buf);
+	  tok = strtok(buf,",*");
 	  decode_DPT(n_fields, is_empty);
 	  n_found++;
 	  depth_updated = true;
 	}
-      else if (!strcmp("SDMTW", tok))
+      else if (strstr(buf,"SDDPT"))
 	{
 	  strcpy(last_mtw,buf);
+	  tok = strtok(buf,",*");
 	  decode_MTW(n_fields, is_empty);
 	  n_found++;
 	  temperature_updated = true;
@@ -98,15 +101,10 @@ void Sonar::decode_DPT(uint8_t n_fields, bool is_empty[])
       switch (element)
 	{
 	default:
-	  // Required if some elements are skipped
-	  char * dump;
-	  dump = strtok(NULL,",*");
-	  (void)dump; 
 	  break;
-
 	case 2:
           if (is_empty[element]) {
-            dbt = NAN;
+            dbt = -2;
             break;
           }
 	  tmp = strtok(NULL,",*");
@@ -115,7 +113,7 @@ void Sonar::decode_DPT(uint8_t n_fields, bool is_empty[])
 	  
 	case 3:
           if (is_empty[element]) {
-            offset = NAN;
+            offset = -2;
             break;
           }
 	  tmp = strtok(NULL,",*");
@@ -124,7 +122,7 @@ void Sonar::decode_DPT(uint8_t n_fields, bool is_empty[])
 	
       	case 4:
           if (is_empty[element]) {
-            max_range_scale = NAN;
+            max_range_scale = -2;
             break;
           }
 	  tmp = strtok(NULL,",*");
