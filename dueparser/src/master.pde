@@ -1,5 +1,3 @@
-#include <Wire.h>
-//#include <i2c_t3.h>
 #include "Sonar.h"
 
 #define ARDUINO_DUE_ADDR 10
@@ -30,8 +28,6 @@ int i3 = 0;
 char wireBuffer[100]; int buffer_ptr = 0;
 
 void setup() {
-  Wire.begin();//I2C_MASTER,0,I2C_PINS_18_19,I2C_PULLUP_EXT,I2C_RATE_1000);
-		      
   Serial.begin(115200);    
   Serial1.begin(38400); 
   Serial2.begin(38400);
@@ -39,11 +35,6 @@ void setup() {
 
   delay(5000);
 
-  // Try to get response from DUE
-  Wire.beginTransmission(ARDUINO_DUE_ADDR);
-  Wire.endTransmission();
-  //if (Wire.status() == I2C_WAITING) I2C_DUE_OK = true;
-  I2C_DUE_OK = true;
   // Change sonar baudrate to 38400
   /* SetBaudRate(&Sonar1, &Serial2); */
   /* SetBaudRate(&Sonar2, &Serial3); */
@@ -60,10 +51,7 @@ void loop() {
   static unsigned long xbee_timer = 0;
   static unsigned long request_timer = 0;
   static unsigned long shit_timer = 0;
-  static unsigned long t1 = 0, t2 = 0, t3 = 0, time_ms;
 
-  time_ms = millis();
-  
   if (Serial1.available()) ReadUART1();
   if (Serial2.available()) ReadUART2();
   if (Serial3.available()) ReadUART3();
@@ -76,17 +64,8 @@ void loop() {
     strcat(pretty_dpt1,",");
     strcat(pretty_dpt1,Sonar1.last_dpt);
     strcat(pretty_dpt1,"*00\r\n\0");
-
-    if (time_ms - t1 > 0) {
-      Wire.beginTransmission(ARDUINO_DUE_ADDR);
-      Wire.write(pretty_dpt1);
-      Wire.endTransmission();
-      t1 = time_ms;
-    }
-    Serial.print(pretty_dpt1);
+    Serial.write(pretty_dpt1); Serial.flush();
   }
-
-  delay(10);
 
   if (Sonar2.depth_updated) {
     Sonar2.depth_updated = false;
@@ -96,16 +75,8 @@ void loop() {
     strcat(pretty_dpt2,Sonar2.last_dpt);
     strcat(pretty_dpt2,"*00\r\n\0");
 
-    if (time_ms - t2 > 0) {
-      Wire.beginTransmission(ARDUINO_DUE_ADDR);
-      Wire.write(pretty_dpt2);
-      Wire.endTransmission();
-      t2 = time_ms;
-    }
-    Serial.print(pretty_dpt2);
+    Serial.write(pretty_dpt2); Serial.flush();
   }
-
-  delay(10);
   
   if (Sonar3.depth_updated) {
     Sonar3.depth_updated = false;
@@ -114,48 +85,41 @@ void loop() {
     strcat(pretty_dpt3,",");
     strcat(pretty_dpt3,Sonar3.last_dpt);
     strcat(pretty_dpt3,"*00\r\n\0");
-
-    if (time_ms - t3 > 0) {
-      Wire.beginTransmission(ARDUINO_DUE_ADDR);
-      Wire.write(pretty_dpt3);
-      Wire.endTransmission();
-      t3 = time_ms;
-    }
-    Serial.print(pretty_dpt3);
+    
+    Serial.write(pretty_dpt3); Serial.flush();
   }
-
-  delay(10);
   
   //CheckI2C();
   blinkLED();
 }
 
-/* void CheckI2C() */
-/* { */
-/*   unsigned long timer = 0; */
+/*void CheckI2C()
+{
+  unsigned long timer = 0;
 
-/*   if (millis() - timer > 2000) { */
-/*     timer = millis(); */
-/*     if (!I2C_DUE_OK)   TestDueCommunication(); */
-/*     if (!I2C_SLAVE_OK) TestSlaveCommunication(); */
-/*   } */
-/* } */
+  if (millis() - timer > 2000) {
+    timer = millis();
+    if (!I2C_DUE_OK)   TestDueCommunication();
+    if (!I2C_SLAVE_OK) TestSlaveCommunication();
+  }
+  }
 
-/* void TestDueCommunication() */
-/* { */
-/*   Wire.beginTransmission(ARDUINO_DUE_ADDR); */
-/*   Wire.endTransmission(); */
-/*   if (Wire.status() == I2C_WAITING) I2C_DUE_OK = true; */
-/*   else I2C_DUE_OK = false; */
-/* } */
+void TestDueCommunication()
+{
+  Wire.beginTransmission(ARDUINO_DUE_ADDR);
+  Wire.endTransmission();
+  if (Wire.status() == I2C_WAITING) I2C_DUE_OK = true;
+  else I2C_DUE_OK = false;
+}
 
-/* void TestSlaveCommunication() */
-/* { */
-/*   Wire.beginTransmission(SLAVE_ADDR); */
-/*   Wire.endTransmission(); */
-/*   if (Wire.status() == I2C_WAITING) I2C_SLAVE_OK = true; */
-/*   else I2C_SLAVE_OK = false; */
-/* } */
+void TestSlaveCommunication()
+{
+  Wire.beginTransmission(SLAVE_ADDR);
+  Wire.endTransmission();
+  if (Wire.status() == I2C_WAITING) I2C_SLAVE_OK = true;
+  else I2C_SLAVE_OK = false;
+}
+*/
 
 void ReadUART1()
 {
@@ -170,7 +134,7 @@ void ReadUART1()
 	}
       else return;
       
-      if ((buffer1[i1-1] == '\n') || (i1 >= sizeof(buffer1) - 1))
+      if ((buffer1[i1] == '\n') || (i1 >= sizeof(buffer1) - 1))
 	{
 	  i1 = 0;
 	  Sonar1.decode_buffer(buffer1);
@@ -197,6 +161,7 @@ void ReadUART2()
 	{
 	  i2 = 0;
 	  Sonar2.decode_buffer(buffer2);
+	  Serial.print(buffer2);
 	  buffer2[0] = '\0';
 	  return;
 	}
@@ -216,7 +181,7 @@ void ReadUART3()
 	}
       else return;
 
-      if ((buffer3[i3-1] == '\n') || (i3 >= sizeof(buffer3) - 1))
+      if ((buffer3[i3] == '\n') || (i3 >= sizeof(buffer3) - 1))
 	{
 	  i3 = 0;
 	  Sonar3.decode_buffer(buffer3);

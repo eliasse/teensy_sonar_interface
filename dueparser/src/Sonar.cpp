@@ -35,6 +35,7 @@ int Sonar::decode_buffer(char in_buffer[])
     
     cs = checksum(buf);
 
+    
     char cs_string[3];
     sprintf(cs_string,"%02X",cs);
     

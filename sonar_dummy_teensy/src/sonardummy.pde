@@ -11,24 +11,70 @@ void setup()
   Serial1.begin(38400);
   Serial2.begin(38400);
   Serial3.begin(38400);
-  Wire.begin(10);
-  Wire.onReceive(receiveEvent);
+  Wire.begin();
   randomSeed(analogRead(A0));
 }
 
 void loop()
 {
-  Serial1.println("$SDDPT,999,666,333*47\r\n");
-  Serial2.println("$SDDPT,999,666,333*47\r\n");
-  Serial3.println("$SDDPT,999,666,333*47\r\n");
   delay(250);
-  //sendSonar();
+  sendSonarI2C();
+  //sendShortI2C();
 }
 
-void receiveEvent(int howMany) {
-  while (Wire.available()) { // loop through all but the last
-    char c = Wire.read(); // receive byte as a character
-    Serial.print(c);         // print the character
+void sendShortI2C()
+{
+  Wire.beginTransmission(10);
+  Wire.write("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefgh\n");
+  Wire.endTransmission();
+}
+
+void sendSonarI2C()
+{
+  unsigned long timer = 0;
+
+  if (millis() - timer < 1000) return;
+  else timer = millis();
+
+  slump = random(20000);
+
+  if (slump < 5000) {
+    Serial1.print(dummy2);
+    Serial2.print(dummy2);
+    Serial3.print(dummy2);
+  }
+  else {
+    String body = "SDDPT,";
+    body += ftoString((float)slump/1000.0f, 3) + ",";
+    body += ftoString(0.000f, 3) + ",";
+    body += ftoString(17.123f, 3);
+    
+    int cs = checksum(body.c_str());
+    char CS[3];
+    sprintf(CS,"%02X",cs);
+    
+    body += String("*") + CS + String("\r\n");
+    String out1 = "$S1," + body;
+    String out2 = "$S2," + body;
+    String out3 = "$S3," + body;
+
+    Wire.beginTransmission(10);
+    Wire.write(out1.c_str());
+    Wire.endTransmission();
+
+    delay(100);
+
+    Wire.beginTransmission(10);
+    Wire.write(out2.c_str());
+    Wire.endTransmission();
+
+    delay(100);
+
+    Wire.beginTransmission(10);
+    Wire.write(out3.c_str());
+    Wire.endTransmission();
+
+    Serial.println(out1);
   }
 }
 
@@ -57,10 +103,12 @@ void sendSonar()
     sprintf(CS,"%02X",cs);
     
     body += String("*") + CS + String("\r\n");
-    String out = "$" + body;
-    Serial1.print(out);
-    Serial2.print(out);
-    Serial3.print(out);
+    String out1 = "$S1" + body;
+    String out2 = "$S2" + body;
+    String out3 = "$S3" + body;
+    Serial1.print(out1);
+    Serial2.print(out2);
+    Serial3.print(out3);
   }
 }
 
