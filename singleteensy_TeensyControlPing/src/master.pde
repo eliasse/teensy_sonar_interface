@@ -1,6 +1,7 @@
 #include <Wire.h>
 //#include <i2c_t3.h>
 #include "Sonar.h"
+#include <array>
 
 #define ARDUINO_DUE_ADDR 10
 #define TWI_ADDR 11
@@ -29,6 +30,14 @@ int i3 = 0;
 
 char wireBuffer[100]; int buffer_ptr = 0;
 
+// Controls what sonar to ping next
+enum {S1 = 0, S2 = 1, S3 = 2};
+int ping[3] = {S1, S2, S3};   // The order of these determines the order of pinging
+int stp = 0;
+bool do_ping = true;
+unsigned long ping_ms     = 0;
+unsigned long response_ms = 0;
+
 void setup() {
   Wire.begin();//I2C_MASTER,0,I2C_PINS_18_19,I2C_PULLUP_EXT,I2C_RATE_1000);
 		      
@@ -37,11 +46,21 @@ void setup() {
   Serial2.begin(38400);
   Serial3.begin(38400);
 
-  delay(5000);
-  
-  //EnableSentenceDPT(&Sonar1, &Serial2);
-  //EnableSentenceDPT(&Sonar2, &Serial3);
+  delay(10000); // Wait for sonars to wake up
 
+  // Disable interval pinging and set sentence to be output on ping
+  EnableManualPing(&Sonar1, &Serial1);
+  EnableManualPing(&Sonar2, &Serial2);
+  EnableManualPing(&Sonar3, &Serial3);
+
+  // Clean serial ports
+  CleansePort(&Serial1);
+  CleansePort(&Serial2);
+  CleansePort(&Serial3);
+  
+  // Verify sonar configuration
+
+  // Setup the debug LED
   pinMode(ledPin,OUTPUT);
 }
 
@@ -49,13 +68,43 @@ void loop() {
   static unsigned long xbee_timer = 0;
   static unsigned long request_timer = 0;
   static unsigned long shit_timer = 0;
-  static unsigned long t1 = 0, t2 = 0, t3 = 0, time_ms;
+  static unsigned long t1 = 0, t2 = 0, t3 = 0;
 
-  time_ms = millis();
-  
   if (Serial1.available()) ReadUART1();
   if (Serial2.available()) ReadUART2();
   if (Serial3.available()) ReadUART3();
+
+  // Send a ping
+  if (do_ping)
+    {
+      // Determine what sonar to ping
+      stp = ++stp % (sizeof(ping)/4); 
+      // Ping the sonar
+      switch ( stp )
+	{
+	default:
+	  Serial.println("Trying to ping non-existing sonar...");
+	  break;
+	case S1:
+	  Serial1.print(Sonar1.ping);
+	  break;
+	case S2:
+	  Serial2.print(Sonar2.ping);
+	  break;
+	case S3:
+	  Serial3.print(Sonar3.ping);
+	  break;
+	}
+      // Don't ping next until response is received
+      do_ping = false;
+      ping_ms = millis();
+    }
+
+  // Don't wait for a response forever...
+  if (millis() - response_ms >= 300)
+    {
+      do_ping = true;
+    }
   
   // If theres new sonar data, send it to the DUE
   if (Sonar1.depth_updated) {
@@ -66,13 +115,16 @@ void loop() {
     strcat(pretty_dpt1,Sonar1.last_dpt);
     strcat(pretty_dpt1,"*00\r\n\0");
 
-    if (time_ms - t1 > 0) {
+    if (millis() - t1 > 0) {
       Wire.beginTransmission(ARDUINO_DUE_ADDR);
       Wire.write(pretty_dpt1);
       Wire.endTransmission();
-      t1 = time_ms;
+      t1 = millis();
     }
     Serial.print(pretty_dpt1);
+
+    do_ping = true;
+    response_ms = millis();
   }
 
   delay(10);
@@ -85,13 +137,16 @@ void loop() {
     strcat(pretty_dpt2,Sonar2.last_dpt);
     strcat(pretty_dpt2,"*00\r\n\0");
 
-    if (time_ms - t2 > 0) {
+    if (millis() - t2 > 0) {
       Wire.beginTransmission(ARDUINO_DUE_ADDR);
       Wire.write(pretty_dpt2);
       Wire.endTransmission();
-      t2 = time_ms;
+      t2 = millis();
     }
     Serial.print(pretty_dpt2);
+
+    do_ping = true;
+    response_ms = millis();
   }
 
   delay(10);
@@ -104,19 +159,28 @@ void loop() {
     strcat(pretty_dpt3,Sonar3.last_dpt);
     strcat(pretty_dpt3,"*00\r\n\0");
 
-    if (time_ms - t3 > 0) {
+    if (millis() - t3 > 0) {
       Wire.beginTransmission(ARDUINO_DUE_ADDR);
       Wire.write(pretty_dpt3);
       Wire.endTransmission();
-      t3 = time_ms;
+      t3 = millis();
     }
     Serial.print(pretty_dpt3);
+
+    do_ping = true;
+    response_ms = millis();
   }
 
   delay(10);
   
   //CheckI2C();
   blinkLED();
+}
+
+void CleansePort(HardwareSerial *hws)
+{
+  while (hws->available())
+    int b = hws->read();
 }
 
 /* void CheckI2C() */
