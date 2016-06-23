@@ -3,6 +3,10 @@
 #include "Sonar.h"
 #include <array>
 
+#if defined BUFFER_LENGTH && BUFFER_LENGTH < 64
+#error "I2C Buffer is too small! Increase the size in Wire.h to at least 64."
+#endif
+
 #define ARDUINO_DUE_ADDR 10
 #define TWI_ADDR 11
 #define SLAVE_ADDR 12
@@ -40,9 +44,9 @@ unsigned long response_ms = 0;
 
 void setup() {
   Wire.begin();//I2C_MASTER,0,I2C_PINS_18_19,I2C_PULLUP_EXT,I2C_RATE_1000);
-		      
-  Serial.begin(115200);    
-  Serial1.begin(38400); 
+
+  Serial.begin(115200);
+  Serial1.begin(38400);
   Serial2.begin(38400);
   Serial3.begin(38400);
 
@@ -57,7 +61,7 @@ void setup() {
   CleansePort(&Serial1);
   CleansePort(&Serial2);
   CleansePort(&Serial3);
-  
+
   // Verify sonar configuration
 
   // Setup the debug LED
@@ -78,7 +82,7 @@ void loop() {
   if (do_ping)
     {
       // Determine what sonar to ping
-      stp = ++stp % (sizeof(ping)/4); 
+      stp = ++stp % (sizeof(ping)/4);
       // Ping the sonar
       switch ( stp )
 	{
@@ -105,7 +109,7 @@ void loop() {
     {
       do_ping = true;
     }
-  
+
   // If theres new sonar data, send it to the DUE
   if (Sonar1.depth_updated) {
     Sonar1.depth_updated = false;
@@ -127,7 +131,7 @@ void loop() {
     response_ms = millis();
   }
 
-  delay(10);
+  delay(100);
 
   if (Sonar2.depth_updated) {
     Sonar2.depth_updated = false;
@@ -149,8 +153,8 @@ void loop() {
     response_ms = millis();
   }
 
-  delay(10);
-  
+  delay(100);
+
   if (Sonar3.depth_updated) {
     Sonar3.depth_updated = false;
     strcpy(pretty_dpt3,"$");
@@ -171,8 +175,8 @@ void loop() {
     response_ms = millis();
   }
 
-  delay(10);
-  
+  delay(100);
+
   //CheckI2C();
   blinkLED();
 }
@@ -222,14 +226,14 @@ void ReadUART1()
 	  i1++;
 	}
       else return;
-      
+
       if ((buffer1[i1-1] == '\n') || (i1 >= sizeof(buffer1) - 1))
 	{
 	  i1 = 0;
-	  
+
 	  Sonar1.decode_buffer(buffer1);
 	  Serial.print(buffer1);
-	  
+
 	  buffer1[0] = '\0';
 	  return;
 	}
@@ -252,10 +256,10 @@ void ReadUART2()
       if ((buffer2[i2-1] == '\n') || (i2 >= sizeof(buffer2) - 1))
 	{
 	  i2 = 0;
-	  
+
 	  Sonar2.decode_buffer(buffer2);
 	  Serial.print(buffer2);
-	  
+
 	  buffer2[0] = '\0';
 	  return;
 	}
@@ -278,14 +282,14 @@ void ReadUART3()
       if ((buffer3[i3-1] == '\n') || (i3 >= sizeof(buffer3) - 1))
 	{
 	  i3 = 0;
-	  
+
 	  Sonar3.decode_buffer(buffer3);
 	  Serial.print(buffer1);
-	  
+
 	  buffer3[0] = '\0';
 	  return;
 	}
-    }   
+    }
 }
 
 // Read sonar data from serial port
@@ -307,7 +311,7 @@ void ReadPort(Sonar *s, HardwareSerial *hws, char *buffer, int *i)
   	{
 	  *i = 0;
   	  //Serial.print(buffer);
-	  
+
   	  if (int n_good = s->decode_buffer(buffer))
   	    {
 	      // Maybe something good?
@@ -349,7 +353,7 @@ void blinkLED()
 {
   static unsigned long last_change = 0;
   static bool onoff;
-  
+
   if (millis() - last_change > 500)
     {
       digitalWrite(ledPin, onoff ? HIGH : LOW);
