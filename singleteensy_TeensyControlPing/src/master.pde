@@ -131,7 +131,7 @@ void loop() {
     response_ms = millis();
   }
 
-  delay(100);
+  delay(10);
 
   if (Sonar2.depth_updated) {
     Sonar2.depth_updated = false;
@@ -153,7 +153,7 @@ void loop() {
     response_ms = millis();
   }
 
-  delay(100);
+  delay(10);
 
   if (Sonar3.depth_updated) {
     Sonar3.depth_updated = false;
@@ -175,7 +175,7 @@ void loop() {
     response_ms = millis();
   }
 
-  delay(100);
+  delay(10);
 
   //CheckI2C();
   blinkLED();
